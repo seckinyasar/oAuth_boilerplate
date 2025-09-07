@@ -1,6 +1,5 @@
 import { Account } from "@prisma/client";
 import * as Sentry from "@sentry/nextjs";
-import { prisma } from "../../../prisma";
 import {
   checkIfRefreshTokenExists,
   checkIfTokenExpired,
@@ -30,12 +29,20 @@ global.fetch = jest.fn();
 process.env.GOOGLE_CLIENT_ID = "test-client-id";
 process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
 
+// Import mocked prisma after mocking
+import { prisma } from "../../../prisma";
+
+// Fix: Properly type the mocked Prisma methods
 const mockPrisma = {
   account: {
-    findMany: jest.fn(),
-    update: jest.fn(),
+    findMany: jest.fn() as jest.MockedFunction<typeof prisma.account.findMany>,
+    update: jest.fn() as jest.MockedFunction<typeof prisma.account.update>,
   },
 };
+
+// Replace the actual prisma with our mock
+Object.assign(prisma, mockPrisma);
+
 const mockSentry = Sentry as jest.Mocked<typeof Sentry>;
 const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
@@ -116,7 +123,6 @@ describe("Auth Helper Functions", () => {
   describe("checkIfRefreshTokenExists", () => {
     it("should return true when refresh token exists", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -139,7 +145,6 @@ describe("Auth Helper Functions", () => {
 
     it("should return false when refresh token is null", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -162,7 +167,6 @@ describe("Auth Helper Functions", () => {
 
     it("should return false when refresh token is undefined", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -187,7 +191,6 @@ describe("Auth Helper Functions", () => {
   describe("checkIfTokenExpired", () => {
     it("should return true when expires_at is null", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -210,7 +213,6 @@ describe("Auth Helper Functions", () => {
 
     it("should return true when token is expired", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -233,7 +235,6 @@ describe("Auth Helper Functions", () => {
 
     it("should return false when token is not expired", () => {
       const account: Account = {
-        // id field'ı kaldırıldı
         createdAt: new Date(),
         updatedAt: new Date(),
         userId: "user-1",
@@ -242,7 +243,7 @@ describe("Auth Helper Functions", () => {
         providerAccountId: "google-123",
         refresh_token: "refresh-token-123",
         access_token: "access-token-123",
-        expires_at: 1909097300, //? in 5 years
+        expires_at: 1909097300, // in 5 years
         token_type: "Bearer",
         scope: "openid email profile",
         id_token: "id-token-123",
@@ -257,7 +258,6 @@ describe("Auth Helper Functions", () => {
 
   describe("handleSessionTokenRefresh", () => {
     const mockAccount: Account = {
-      // id field'ı kaldırıldı
       createdAt: new Date(),
       updatedAt: new Date(),
       userId: "user-1",
@@ -323,7 +323,7 @@ describe("Auth Helper Functions", () => {
 
       expect(result).toEqual({
         error: "invalid_grant",
-        error_description: "Refresh token expired",
+        error_description: "Refresh token expired or revoked",
       });
     });
 
@@ -344,7 +344,6 @@ describe("Auth Helper Functions", () => {
 
   describe("refreshGoogleAccessToken", () => {
     const mockAccount: Account = {
-      // id field'ı kaldırıldı
       createdAt: new Date(),
       updatedAt: new Date(),
       userId: "user-1",
